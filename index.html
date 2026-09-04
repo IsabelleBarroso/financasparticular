@@ -151,7 +151,7 @@ nav{display:flex;background:var(--carta);border-top:1px solid var(--line);paddin
   <div class="menu" onclick="go('poup')"><div class="e">🐷</div><div class="t"><b>Poupança</b><span id="mPoup"></span></div><div class="a">›</div></div>
   <div class="menu" onclick="go('ajustes')"><div class="e">⚙️</div><div class="t"><b>Ajustes</b><span>salário, teto, cartões, categorias</span></div><div class="a">›</div></div>
   <div class="menu" onclick="go('backup')"><div class="e">💾</div><div class="t"><b>Backup</b><span>exportar e importar seus dados</span></div><div class="a">›</div></div>
-  <div class="menu" onclick="go('updates')"><div class="e">🆕</div><div class="t"><b>Atualizações</b><span>versão 1.0 · o que mudou</span></div><div class="a">›</div></div>
+  <div class="menu" onclick="go('updates')"><div class="e">🆕</div><div class="t"><b>Atualizações</b><span>versão 1.1 · o que mudou</span></div><div class="a">›</div></div>
 </section>
 
 <!-- ASSINATURAS -->
@@ -201,6 +201,7 @@ nav{display:flex;background:var(--carta);border-top:1px solid var(--line);paddin
 <section class="screen" id="s-updates">
   <button class="back" onclick="go('mais')">←</button><h2>Atualizações</h2>
   <div class="blk">
+    <div class="ver"><b>v1.1</b> · 04/09/2026<span>Fatura Mercado Pago de outubro conferida: relógio 2/15 (49,99) e MP*MP 2/12 (35,50) · Presente Túlio removido</span></div>
     <div class="ver"><b>v1.0</b> · 04/09/2026<span>Primeira versão publicada · salva no Firebase · funciona offline</span></div>
     <div class="ver"><b>v0.11</b><span>Fatura BB de outubro importada (14 compras) · ciclo por fechamento de cada cartão · parcelas atualizadas · Livraria Leiturinha</span></div>
     <div class="ver"><b>v0.10</b><span>Teto do cartão passa a medir só gastos + parcelas (assinaturas fora)</span></div>
@@ -308,8 +309,8 @@ let debts=[
  {n:'Empréstimo 2',type:'emp',p:0,tot:36,val:1111,how:'boleto dia 19 · começa em outubro',paid:false},
  {n:'Cartão Renner',type:'emp',p:2,tot:4,val:400.70,how:'fatura Renner · últimas 2 parcelas',paid:false,renner:true},
  {n:'Empréstimo Viena',type:'emp',p:0,tot:1,val:0,rest:2000,livre:true,how:'pix · sem parcela fixa'},
- {n:'C&A',type:'parc',p:1,tot:3,val:149.98,card:'bb'},{n:'Amazon',type:'parc',p:2,tot:4,val:168.73,card:'bb'},{n:'Centauro',type:'parc',p:3,tot:8,val:112.49,card:'bb'},{n:'Livraria Leiturinha',type:'parc',p:1,tot:2,val:74.95,card:'bb'},{n:'Presente Túlio',type:'parc',p:0,tot:2,val:74.95,card:'bb',how:'não apareceu na fatura BB — confirmar cartão'},
- {n:'Relógio',type:'parc',p:0,tot:15,val:50,card:'mp'},{n:'Jogos (presente)',type:'parc',p:0,tot:12,val:457/12,card:'mp'}];
+ {n:'C&A',type:'parc',p:1,tot:3,val:149.98,card:'bb'},{n:'Amazon',type:'parc',p:2,tot:4,val:168.73,card:'bb'},{n:'Centauro',type:'parc',p:3,tot:8,val:112.49,card:'bb'},{n:'Livraria Leiturinha',type:'parc',p:1,tot:2,val:74.95,card:'bb'},
+ {n:'Relógio (Mercado Livre)',type:'parc',p:1,tot:15,val:49.99,card:'mp'},{n:'MP*MP transferência',type:'parc',p:1,tot:12,val:35.50,card:'mp'}];
 const SALHIST={2022:{9:385.42,10:2261.98,11:2261.98},2023:{0:2261.98,1:2265.24,2:2265.24,3:2265.24,4:2265.24,5:2281.09,6:3290.45,7:3290.45,8:3290.45,9:3290.45,10:3290.45,11:3290.45},2024:{0:3294.69,1:1889.34,2:7789.76,3:2134,4:4733.07,5:4844.68,6:4844.68,7:4844.68,8:4844.68,9:4844.68,10:3344.68,11:4844.68},2025:{0:4833.02,1:4833.02,2:4833.02,3:4833.02,4:4033.02,5:4833.02,6:4833.02,7:4833.02,8:4833.02,9:4833.02,10:4833.02,11:5339.03},2026:{0:5339.03,1:7339.03,2:5339.03,3:5416.79,4:5416.79,5:6161.4,6:5998.48}};
 const DECIMO={2022:[312.5,265.63],2023:[1550,1240.45],2024:[2500,2500],2025:[2500,2500]};
 let salCtl=[{ref:'Setembro/2026',pay:'Outubro/2026',prev:5800,rec:null,date:null}];
@@ -427,7 +428,7 @@ const T=document.getElementById('toast');function toast(m){T.textContent=m;T.cla
 /* ==========================================================
    PERSISTÊNCIA — localStorage + Firebase Realtime Database
    ========================================================== */
-const VERSAO="1.0";
+const VERSAO="1.1";
 const FIREBASE={apiKey:"AIzaSyC966WazsmQV2qwAAWorZk0Dcz9ePGtIJI",authDomain:"isabelle-financas.firebaseapp.com",databaseURL:"https://isabelle-financas-default-rtdb.firebaseio.com",projectId:"isabelle-financas"};
 /* caminho novo no banco — o app antigo (Balanço) continua em financas/isb-... e não é tocado */
 const SALA="financas/app-e7d9071862a3";
