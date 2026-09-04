@@ -78,7 +78,7 @@ nav{display:flex;background:var(--carta);border-top:1px solid var(--line);paddin
 
 <!-- INÍCIO -->
 <section class="screen on" id="s-inicio">
-  <div class="hd"><div class="top"><span id="iTop"></span><span id="selo" style="display:flex;align-items:center;gap:6px"><i id="seloDot" style="width:8px;height:8px;border-radius:99px;background:rgba(242,238,228,.3);display:inline-block"></i><span id="seloTxt">local</span></span></div>
+  <div class="hd"><div class="top"><span id="iTop" style="text-transform:none;letter-spacing:0;font-size:15px;color:var(--papel);font-family:var(--display);font-weight:500"></span><i id="seloDot" title="" style="width:9px;height:9px;border-radius:99px;background:rgba(242,238,228,.3);display:inline-block"></i></div>
   <div class="hero"><div class="l">Ainda posso gastar do salário</div><div class="v num"><small>R$</small><span id="gNum"></span></div></div>
   <div class="track"><i id="gBar"></i></div>
   <div class="meta"><span id="gUsed"></span><span id="gTeto"></span></div></div>
@@ -96,6 +96,7 @@ nav{display:flex;background:var(--carta);border-top:1px solid var(--line);paddin
   </div>
 
   <div class="blk"><h3>Onde foi <span class="num" id="wTot" style="text-transform:none;color:var(--ink)"></span></h3><div id="where"></div></div>
+  <p class="note" style="margin:14px 0 4px;font-size:11px">Minhas finanças · <span id="verRodape"></span></p>
 </section>
 
 <!-- GASTOS -->
@@ -151,7 +152,7 @@ nav{display:flex;background:var(--carta);border-top:1px solid var(--line);paddin
   <div class="menu" onclick="go('poup')"><div class="e">🐷</div><div class="t"><b>Poupança</b><span id="mPoup"></span></div><div class="a">›</div></div>
   <div class="menu" onclick="go('ajustes')"><div class="e">⚙️</div><div class="t"><b>Ajustes</b><span>salário, teto, cartões, categorias</span></div><div class="a">›</div></div>
   <div class="menu" onclick="go('backup')"><div class="e">💾</div><div class="t"><b>Backup</b><span>exportar e importar seus dados</span></div><div class="a">›</div></div>
-  <div class="menu" onclick="go('updates')"><div class="e">🆕</div><div class="t"><b>Atualizações</b><span>versão 1.1 · o que mudou</span></div><div class="a">›</div></div>
+  <div class="menu" onclick="go('updates')"><div class="e">🆕</div><div class="t"><b>Atualizações</b><span>versão 1.2 · o que mudou</span></div><div class="a">›</div></div>
 </section>
 
 <!-- ASSINATURAS -->
@@ -201,6 +202,7 @@ nav{display:flex;background:var(--carta);border-top:1px solid var(--line);paddin
 <section class="screen" id="s-updates">
   <button class="back" onclick="go('mais')">←</button><h2>Atualizações</h2>
   <div class="blk">
+    <div class="ver"><b>v1.2</b> · 04/09/2026<span>Saudação no Início · luz de sincronização sem texto · versão no rodapé · Gastos por cartão mostra assinaturas e parcelas · correção automática das parcelas do Mercado Pago</span></div>
     <div class="ver"><b>v1.1</b> · 04/09/2026<span>Fatura Mercado Pago de outubro conferida: relógio 2/15 (49,99) e MP*MP 2/12 (35,50) · Presente Túlio removido</span></div>
     <div class="ver"><b>v1.0</b> · 04/09/2026<span>Primeira versão publicada · salva no Firebase · funciona offline</span></div>
     <div class="ver"><b>v0.11</b><span>Fatura BB de outubro importada (14 compras) · ciclo por fechamento de cada cartão · parcelas atualizadas · Livraria Leiturinha</span></div>
@@ -332,7 +334,7 @@ function calc(){const gasto=credItems().reduce((a,i)=>a+i.v,0),outros=outItems()
 
 function rInicio(){
   const k=calc(),used=Math.min(1,k.cart/cfg.teto),s=salCtl[0];
-  iTop.textContent='Setembro → outubro · BB fecha 25/09';
+  const h=new Date().getHours();iTop.textContent=(h<12?'Bom dia':h<18?'Boa tarde':'Boa noite')+', Isabelle';
   gNum.textContent=R(k.sobra);gBar.style.width=used*100+'%';gBar.className=used>.85?'warn':'';
   gUsed.textContent=`Cartão: R$ ${R(k.cart)} de ${R(cfg.teto)} (${Math.round(used*100)}%)`;gTeto.textContent=used>=1?'passou do limite!':used>.85?'perto do limite':'R$ '+R(k.cartao)+' livres no cartão';
   pills.innerHTML=Object.entries(CARDS).map(([id,[n,col,f,v]])=>`<div class="pill"><div class="k"><b style="background:${col}"></b>${n}</div><div class="n num">R$ ${R(cardTotal(id))}</div><div class="s">fecha ${f} · vence ${v}</div></div>`).join('');
@@ -343,9 +345,14 @@ function rInicio(){
 }
 function rList(){
   const li=items.filter(inCycle).filter(i=>filter==='all'||(filter==='out'?i.forma!=='credito':i.card===filter&&i.forma==='credito')).sort((a,b)=>b.d.localeCompare(a.d));
-  const k=calc();lSub.textContent=`BB 26/08–25/09 · M. Pago 03/09–02/10 · Cartão R$ ${R2(k.gasto)} · Pix/déb/$ R$ ${R2(k.outros)}`;
+  const k=calc(),cs=filter==='all'?Object.keys(CARDS):filter==='out'?[]:[filter],tf=cs.reduce((a,id)=>a+cardTotal(id),0);lSub.textContent=filter==='out'?`Pix, débito e dinheiro · R$ ${R2(k.outros)}`:`Total na fatura: R$ ${R2(tf)} · compras ${R2(li.reduce((a,i)=>a+i.v,0))}`;
   const days={};li.forEach(i=>(days[i.d]=days[i.d]||[]).push(i));
-  list.innerHTML=Object.entries(days).map(([d,l])=>`<p class="day"><span>${d.slice(8,10)}/${d.slice(5,7)}</span><span class="num">R$ ${R2(l.reduce((a,i)=>a+i.v,0))}</span></p>`+l.map(i=>{const cr=i.forma==='credito';return`<div class="item ${cr?'':'off'}"><div class="ico">${CATS[i.c][1]}</div><div class="t">${i.t||CATS[i.c][0]}<div class="d">${cr?`<b style="background:${CARDS[i.card][1]}"></b>${CARDS[i.card][0]}`:FORMAS[i.forma][1]+' '+FORMAS[i.forma][0]} · ${CATS[i.c][0]}</div></div><div class="v num">${R2(i.v)}</div><button class="x" onclick="del(${items.indexOf(i)})">✕</button></div>`}).join('')).join('')||'<p class="note">Nenhum gasto neste filtro.</p>';
+  let extra='';
+  if(filter!=='out'){const cs=filter==='all'?Object.keys(CARDS):[filter];
+    const sb=subs.filter(x=>x.on&&cs.includes(x.card)),pc=debts.filter(x=>x.type==='parc'&&x.p<x.tot&&cs.includes(x.card));
+    if(sb.length)extra+=`<p class="day"><span>Assinaturas</span><span class="num">R$ ${R2(sb.reduce((a,x)=>a+x.v,0))}</span></p>`+sb.map(x=>`<div class="item"><div class="ico">📺</div><div class="t">${x.n}<div class="d"><b style="background:${CARDS[x.card][1]}"></b>${CARDS[x.card][0]} · dia ${x.dia}</div></div><div class="v num">${R2(x.v)}</div></div>`).join('');
+    if(pc.length)extra+=`<p class="day"><span>Parcelas</span><span class="num">R$ ${R2(pc.reduce((a,x)=>a+x.val,0))}</span></p>`+pc.map(x=>`<div class="item"><div class="ico">🔁</div><div class="t">${x.n}<div class="d"><b style="background:${CARDS[x.card][1]}"></b>${CARDS[x.card][0]} · parcela ${x.p+1} de ${x.tot}</div></div><div class="v num">${R2(x.val)}</div></div>`).join('');}
+  list.innerHTML=Object.entries(days).map(([d,l])=>`<p class="day"><span>${d.slice(8,10)}/${d.slice(5,7)}</span><span class="num">R$ ${R2(l.reduce((a,i)=>a+i.v,0))}</span></p>`+l.map(i=>{const cr=i.forma==='credito';return`<div class="item ${cr?'':'off'}"><div class="ico">${CATS[i.c][1]}</div><div class="t">${i.t||CATS[i.c][0]}<div class="d">${cr?`<b style="background:${CARDS[i.card][1]}"></b>${CARDS[i.card][0]}`:FORMAS[i.forma][1]+' '+FORMAS[i.forma][0]} · ${CATS[i.c][0]}</div></div><div class="v num">${R2(i.v)}</div><button class="x" onclick="del(${items.indexOf(i)})">✕</button></div>`}).join('')).join('')+extra||'<p class="note">Nenhum gasto neste filtro.</p>';
 }
 function del(i){items.splice(i,1);rList();toast('Removido');}
 function setF(f,b){filter=f;b.parentNode.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');rList();}
@@ -428,15 +435,16 @@ const T=document.getElementById('toast');function toast(m){T.textContent=m;T.cla
 /* ==========================================================
    PERSISTÊNCIA — localStorage + Firebase Realtime Database
    ========================================================== */
-const VERSAO="1.1";
+const VERSAO="1.2";
 const FIREBASE={apiKey:"AIzaSyC966WazsmQV2qwAAWorZk0Dcz9ePGtIJI",authDomain:"isabelle-financas.firebaseapp.com",databaseURL:"https://isabelle-financas-default-rtdb.firebaseio.com",projectId:"isabelle-financas"};
 /* caminho novo no banco — o app antigo (Balanço) continua em financas/isb-... e não é tocado */
 const SALA="financas/app-e7d9071862a3";
 const CHAVE="financas-v1";
 let atualizadoEm=0,fbRef=null,timerSalvar=null,ignorar=false,pendente=false;
-function marcar(e){const c={local:['rgba(242,238,228,.3)','só neste aparelho'],conectando:['#E8B34A','conectando…'],online:['#5FD08A','sincronizado'],salvando:['#E8B34A','salvando…'],offline:['#E8899C','sem conexão']}[e];const d=document.getElementById('seloDot'),t=document.getElementById('seloTxt');if(d){d.style.background=c[0];t.textContent=c[1];}}
+function marcar(e){const c={local:['rgba(242,238,228,.3)','só neste aparelho'],conectando:['#E8B34A','conectando…'],online:['#5FD08A','sincronizado'],salvando:['#E8B34A','salvando…'],offline:['#E8899C','sem conexão']}[e];const d=document.getElementById('seloDot');if(d){d.style.background=c[0];d.title=c[1];}}
 function snapshot(){return{versao:VERSAO,atualizadoEm,cfg,CATS,items,subs,poup,debts,salCtl,ferias};}
-function aplicar(d){if(!d)return;if(d.cfg)cfg=d.cfg;if(d.CATS)CATS=d.CATS;if(d.items)items=d.items;if(d.subs)subs=d.subs;if(d.poup)poup=d.poup;if(d.debts)debts=d.debts;if(d.salCtl)salCtl=d.salCtl;if(d.ferias)ferias=d.ferias;atualizadoEm=d.atualizadoEm||0;}
+function migrar(){let mud=false;debts=debts.filter(x=>{if(x.n==='Presente Túlio'){mud=true;return false;}return true;});debts.forEach(x=>{if(x.n==='Relógio'){x.n='Relógio (Mercado Livre)';x.val=49.99;x.p=Math.max(x.p,1);mud=true;}if(x.n==='Jogos (presente)'){x.n='MP*MP transferência';x.val=35.50;x.p=Math.max(x.p,1);mud=true;}});return mud;}
+function aplicar(d){if(!d)return;if(d.cfg)cfg=d.cfg;if(d.CATS)CATS=d.CATS;if(d.items)items=d.items;if(d.subs)subs=d.subs;if(d.poup)poup=d.poup;if(d.debts)debts=d.debts;if(d.salCtl)salCtl=d.salCtl;if(d.ferias)ferias=d.ferias;atualizadoEm=d.atualizadoEm||0;if(migrar())setTimeout(persist,1500);}
 function persist(){atualizadoEm=Date.now();try{localStorage.setItem(CHAVE,JSON.stringify(snapshot()));}catch(e){}
   clearTimeout(timerSalvar);pendente=true;marcar('salvando');timerSalvar=setTimeout(enviar,800);}
 function enviar(){if(!fbRef){marcar('local');return;}ignorar=true;fbRef.set(snapshot()).then(()=>{pendente=false;marcar('online');}).catch(()=>{ignorar=false;marcar('offline');});}
@@ -466,7 +474,7 @@ function renderAtual(){go(telaAtual);}
 /* boot */
 (function(){
   try{const x=localStorage.getItem(CHAVE);if(x)aplicar(JSON.parse(x));}catch(e){}
-  const v=document.getElementById('verAtual');if(v)v.textContent='v'+VERSAO;
+  const v=document.getElementById('verAtual');if(v)v.textContent='v'+VERSAO;const vr=document.getElementById('verRodape');if(vr)vr.textContent='v'+VERSAO;
   iniciarFirebase();
   setTimeout(()=>procurarAtualizacao(true),4000);
   if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
