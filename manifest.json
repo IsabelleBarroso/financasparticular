@@ -3,8 +3,8 @@
   "short_name": "Finanças",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#12322A",
-  "theme_color": "#12322A",
+  "background_color": "#1A1921",
+  "theme_color": "#1A1921",
   "lang": "pt-BR",
   "icons": [
     {"src": "icone-192.png", "sizes": "192x192", "type": "image/png"},
