@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Minhas finanças">
 <title>Minhas finanças</title>
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -379,7 +379,7 @@ function estadoInicial(){
   };
 }
 let D = estadoInicial();
-const UI = { aba:'inicio', sub:null, ano:null, cardSel:null, lanc:'gasto', filtroGasto:'mes', filtroGanho:'mes',
+const UI = { aba:'inicio', sub:null, ano:null, subRenda:'mes', cardSel:null, lanc:'gasto', filtroGasto:'mes', filtroGanho:'mes',
              mesRef:null, catAberta:null, catGasto:null, editando:null, editandoG:null, editandoF:null, vistaGraf:'mes', anoRef:null };
 let seq = Date.now()%1000000;
 const novoId = () => ++seq;
@@ -494,7 +494,8 @@ function normalizar(v){
   r.poupancas=Array.isArray(v.poupancas)?v.poupancas:[];
   r.livres=Array.isArray(v.livres)?v.livres:[];
   r.ferias=Array.isArray(v.ferias)?v.ferias:[];
-  r.salHist=v.salHist||{}; r.decimo=v.decimo||{};
+  r.salHist=(v.salHist&&Object.keys(v.salHist).length)?v.salHist:HIST_PADRAO;
+  r.decimo=(v.decimo&&Object.keys(v.decimo).length)?v.decimo:DEC_PADRAO;
   r.emojiCat=v.emojiCat||{}; r.corCat=v.corCat||{};
   r.poupancas.forEach(p=>{ if(!Array.isArray(p.feitos)) p.feitos=[]; });
   if(v._origemAntiga) r._origemAntiga=v._origemAntiga;
@@ -762,19 +763,14 @@ function toggleFatura(ch){const s=new Set(D.faturasPagas||[]);s.has(ch)?s.delete
 
 function telaMais(){
   if(UI.sub==='poupanca') return telaPoupanca();
-  if(UI.sub==='ferias')   return telaFerias();
-  if(UI.sub==='renda')    return telaRenda();
   if(UI.sub==='dividas')  return telaDividas();
   if(UI.sub==='grafico')  return telaGrafico();
   const item=(id,e,t,s)=>`<div class="linha-item" style="cursor:pointer" onclick="UI.sub='${id}';render()">
     <div class="corpo"><div class="nome">${e} ${t}</div><div class="sub">${s}</div></div>
     <div class="valor" style="color:var(--cinza)">›</div></div>`;
-  const dias=(D.ferias||[]).filter(f=>!f.quit).reduce((a,f)=>a+f.dias-(f.gozos||[]).reduce((x,g)=>x+g.d,0),0);
   return `<div class="secao-titulo">Mais</div><div class="cartao">
     ${item('dividas','📄','Dívidas',R$(totalDevo())+' em aberto')}
     ${item('poupanca','🐷','Poupança',R$(guardado())+' guardados · '+R$(totalPoupanca())+'/mês')}
-    ${item('ferias','🌴','Férias',dias+' dias disponíveis')}
-    ${item('renda','💼','Renda e histórico','salários desde 2022 e 13º')}
     ${item('grafico','📊','Gráficos','categorias e evolução')}</div>`;
 }
 const voltarMais=`<button class="btn claro" style="margin-bottom:12px" onclick="UI.sub=null;render()">← Mais</button>`;
@@ -800,18 +796,19 @@ function telaDividas(){
   return voltarMais+`<div class="secao-titulo">Dívidas</div>
   <div class="saldo"><span class="rot">Total que devo</span>
     <b class="val" style="color:var(--rosa)">${R$(totalDevo())}</b></div>
-  ${bloco('Fora do cartão',emp.map(x=>`<div class="linha-item"><div class="corpo">
-    <div class="nome">${esc(x.f.nome)}</div><div class="sub">${x.pagas} de ${x.f.parcelas} pagas · ${R$(x.f.valor)}/mês · dia ${x.f.dia}</div>
+  ${bloco('Fora do cartão',emp.map(x=>`<div class="linha-item" style="cursor:pointer" onclick="editarEmprestimo(${x.f.id})"><div class="corpo">
+    <div class="nome">${esc(x.f.nome)} ✎</div><div class="sub">${x.pagas} de ${x.f.parcelas} pagas · ${R$(x.f.valor)}/mês · dia ${x.f.dia}</div>
     <div class="barra" style="margin-top:5px"><i style="width:${x.pagas/x.f.parcelas*100}%;background:var(--verde)"></i></div></div>
     <div class="valor">${R$(x.saldo)}</div></div>`))}
-  ${bloco('Parcelado no cartão',parc.map(x=>`<div class="linha-item"><div class="corpo">
-    <div class="nome">${esc(x.g.desc)}</div><div class="sub">${x.pagas} de ${x.g.parcelas} · ${R$(x.g.valor/x.g.parcelas)}/mês · ${esc(cartaoDe(x.g.card).nome)}</div>
+  ${bloco('Parcelado no cartão',parc.map(x=>`<div class="linha-item" style="cursor:pointer" onclick="editarParcelado(${x.g.id})"><div class="corpo">
+    <div class="nome">${esc(x.g.desc)} ✎</div><div class="sub">${x.pagas} de ${x.g.parcelas} · ${R$(x.g.valor/x.g.parcelas)}/mês · ${esc(cartaoDe(x.g.card).nome)}</div>
     <div class="barra" style="margin-top:5px"><i style="width:${x.pagas/x.g.parcelas*100}%;background:var(--verde)"></i></div></div>
     <div class="valor">${R$(x.saldo)}</div></div>`))}
   ${bloco('Sem parcela fixa',(D.livres||[]).map((x,i)=>`<div class="linha-item"><div class="corpo">
     <div class="nome">${esc(x.nome)}</div><div class="sub">${esc(x.obs||'saldo em aberto')}</div></div>
     <div class="valor">${R$(x.saldo)}
-    <button class="btn claro" style="margin-top:6px;padding:4px 10px;font-size:11px" onclick="abrirAbate(${i})">abater</button></div></div>`))}`;
+    <button class="btn claro" style="margin-top:6px;padding:4px 10px;font-size:11px" onclick="abrirAbate(${i})">abater</button></div></div>`))}
+  <button class="btn claro" style="margin-top:10px" onclick="novaDivida()">+ Nova dívida</button>`;
 }
 
 function telaPoupanca(){
@@ -840,31 +837,48 @@ function aportar(i){
 function telaFerias(){
   const abertos=(D.ferias||[]).filter(f=>!f.quit);
   const dias=abertos.reduce((a,f)=>a+f.dias-(f.gozos||[]).reduce((x,g)=>x+g.d,0),0);
-  return voltarMais+`<div class="secao-titulo">Férias</div>
+  return `<div class="secao-titulo">Férias</div>
   <div class="grade">
     <div class="mini"><div class="rot">Dias disponíveis</div><div class="num" style="color:var(--verde)">${dias}</div><div class="pe">em ${abertos.length} período(s)</div></div>
     <div class="mini"><div class="rot">Períodos</div><div class="num">${(D.ferias||[]).length}</div><div class="pe">desde set/2022</div></div></div>
   ${(D.ferias||[]).map((f,i)=>{
     const usados=(f.gozos||[]).reduce((x,g)=>x+g.d,0);
     return `<div class="cartao" style="margin-bottom:10px;opacity:${f.quit?.62:1}">
-      <div class="topo"><div><span class="rot">Período ${esc(f.n)}</span>
+      <div class="topo" style="cursor:pointer" onclick="editarPeriodo(${i})"><div><span class="rot">Período ${esc(f.n)} ✎</span>
         <b class="val" style="font-size:15px">${esc(f.ini)} → ${esc(f.fim)}</b></div>
         <div style="text-align:right"><span class="rot">${f.quit?'quitado':'disponível'}</span>
         <b class="val" style="font-size:17px;color:${f.quit?'var(--cinza)':'var(--verde)'}">${f.quit?'✓':(f.dias-usados)+' dias'}</b></div></div>
       ${f.obs?`<div style="font-size:12px;color:var(--cinza);margin-top:4px">${esc(f.obs)}</div>`:''}
       ${f.valor?`<div style="font-size:12px;color:var(--cinza)">recebeu ${R$(f.valor)} em ${esc(f.rec||'')}</div>`:''}
-      ${(f.gozos||[]).map(g=>`<div class="linha-item" style="padding:7px 0">
+      ${(f.gozos||[]).map((g,j)=>`<div class="linha-item" style="padding:7px 0;cursor:pointer" onclick="editarGozo(${i},${j})">
         <div class="corpo"><div class="nome" style="font-size:13px">${g.vend?'Vendeu':'Tirou'} ${g.d} dias</div>
         <div class="sub">${g.de?esc(g.de)+' a '+esc(g.ate):''}${g.rec?' · recebido em '+esc(g.rec):''}</div></div>
-        <div class="valor">${g.v?R$(g.v):'—'}</div></div>`).join('')}
-      ${f.quit?'':`<button class="btn claro" style="margin-top:8px;padding:6px 12px;font-size:12px" onclick="abrirFerias(${i})">registrar dias</button>`}
+        <div class="valor">${g.v?R$(g.v):'—'} ✎</div></div>`).join('')}
+      <button class="btn claro" style="margin-top:8px;padding:6px 12px;font-size:12px" onclick="abrirFerias(${i})">registrar dias</button>
     </div>`;}).join('')}
-  <div style="font-size:11.5px;color:var(--cinza)">As férias contam no ano em que o dinheiro caiu, não no período aquisitivo.</div>`;
+  <button class="btn claro" onclick="novoPeriodo()">+ Novo período</button>
+  <div style="font-size:11.5px;color:var(--cinza);margin-top:10px">As férias contam no ano em que o dinheiro caiu, não no período aquisitivo. Toque em qualquer linha para editar.</div>`;
 }
 
+function chipsRenda(){
+  return `<div class="chips">${[['mes','Recebimentos'],['hist','Histórico'],['fer','Férias']].map(a=>
+    `<button class="chip" aria-pressed="${(UI.subRenda||'mes')===a[0]}" onclick="UI.subRenda='${a[0]}';UI.editandoG=null;render()">${a[1]}</button>`).join('')}</div>`;
+}
 function telaRenda(){
+  const q=UI.subRenda||'mes';
+  if(q==='mes') return chipsRenda()+telaGanhos();
+  if(q==='fer') return chipsRenda()+telaFerias();
+  return chipsRenda()+telaHistorico();
+}
+function telaHistorico(){
   const anos=Object.keys(D.salHist||{}).sort((a,b)=>b-a);
-  return voltarMais+`<div class="secao-titulo">Renda e histórico</div>
+  if(!anos.length) return `<div class="vazio">Nenhum ano no histórico ainda.</div>
+    <button class="btn claro" onclick="novoAnoSal()">+ Adicionar ano</button>`;
+  const ganho=anos.reduce((s,y)=>s+Object.values(D.salHist[y]).reduce((a,b)=>a+b,0)
+    +(((D.decimo||{})[y]||[0,0])[0]+((D.decimo||{})[y]||[0,0])[1]),0);
+  return `<div class="saldo"><span class="rot">Recebido desde ${anos[anos.length-1]}</span>
+    <b class="val" style="color:var(--verde)">${R$(ganho)}</b>
+    <div style="font-size:11.5px;color:var(--cinza);margin-top:2px">salários e 13º somados</div></div>
   ${anos.map(y=>{
     const ms=D.salHist[y], dec=(D.decimo||{})[y];
     const tot=Object.values(ms).reduce((a,b)=>a+b,0), aberto=UI.ano===y;
@@ -874,12 +888,15 @@ function telaRenda(){
         <div class="sub">${Object.keys(ms).length} meses${dec?' · 13º '+R$(dec[0]+dec[1]):''}</div></div>
         <div class="valor">${R$(tot)} ${aberto?'▾':'▸'}</div></div>
       ${aberto?Object.entries(ms).sort((a,b)=>b[0]-a[0]).map(([m,v])=>`
-        <div class="linha-item" style="padding:6px 0"><div class="corpo">
-        <div class="nome" style="font-size:13px">${MESES[+m].charAt(0).toUpperCase()+MESES[+m].slice(1)}</div></div>
+        <div class="linha-item" style="padding:6px 0;cursor:pointer" onclick="editarMesSal('${y}','${m}')"><div class="corpo">
+        <div class="nome" style="font-size:13px">${MESES[+m].charAt(0).toUpperCase()+MESES[+m].slice(1)} ✎</div></div>
         <div class="valor">${R$(v)}</div></div>`).join('')
-        +(dec?`<div class="linha-item" style="padding:6px 0"><div class="corpo">
-        <div class="nome" style="font-size:13px">13º · 1ª e 2ª parcela</div></div>
-        <div class="valor">${R$(dec[0])} + ${R$(dec[1])}</div></div>`:''):''}</div>`;}).join('')}`;
+        +`<div class="linha-item" style="padding:6px 0;cursor:pointer" onclick="editarMesSal('${y}','0')"><div class="corpo">
+        <div class="nome" style="font-size:13px;color:var(--cinza)">+ lançar um mês</div></div><div class="valor"></div></div>`
+        +`<div class="linha-item" style="padding:6px 0;cursor:pointer" onclick="editarDecimo('${y}')"><div class="corpo">
+        <div class="nome" style="font-size:13px">13º · 1ª e 2ª parcela ✎</div></div>
+        <div class="valor">${dec?R$(dec[0])+' + '+R$(dec[1]):'—'}</div></div>`:''}</div>`;}).join('')}
+  <button class="btn claro" style="margin-top:4px" onclick="novoAnoSal()">+ Adicionar ano</button>`;
 }
 
 function chipsGastos(){
@@ -1751,14 +1768,14 @@ function toast(msg){
 }
 
 const ABAS=[['inicio','Início',telaInicio],['gastos','Gastos',telaGastos],['apagar','A pagar',telaAPagar],
-            ['ganhos','Ganhos',telaGanhos],
+            ['renda','Renda',telaRenda],
             ['mais','Mais',telaMais]];
 
 function render(){
   const aba=ABAS.find(a=>a[0]===UI.aba)||ABAS[0];
   document.getElementById('tela').innerHTML=aba[2]();
   document.getElementById('nav').innerHTML=
-    ABAS.map(a=>`<button class="${a[0]==='ganhos'?'gan':''}" aria-current="${a[0]===UI.aba}" onclick="ir('${a[0]}')">${a[1]}</button>`).join('');
+    ABAS.map(a=>`<button class="${a[0]==='renda'?'gan':''}" aria-current="${a[0]===UI.aba}" onclick="ir('${a[0]}')">${a[1]}</button>`).join('');
 
   document.getElementById('cab').className='';
   document.getElementById('eyebrow').textContent=D.nome?D.nome+' · Financeiro':'Financeiro';
@@ -2001,9 +2018,185 @@ function converterAntigo(b){
     poupancas:(b.poup||[]).map(p=>({id:id(),nome:p.n,aporte:+p.ap||0,dia:p.dia||1,
       saldo:+p.saldo||0,meta:+p.meta||0,feitos:[]})),
     livres:(b.debts||[]).filter(d=>d.livre).map(d=>({id:id(),nome:d.n,saldo:+d.rest||0,obs:d.how||''})),
-    ferias:b.ferias||[], salHist:b.SALHIST||{}, decimo:b.DECIMO||{},
+    ferias:b.ferias||[], salHist:vazio(b.SALHIST)?HIST_PADRAO:b.SALHIST,
+    decimo:vazio(b.DECIMO)?DEC_PADRAO:b.DECIMO,
     fixasPagas:[], parcelasPagas:pagas, faturasPagas:[]
   };
+}
+
+/* ==================== HISTÓRICO PADRÃO ====================
+   o app antigo guardava isto como constante no próprio arquivo, então
+   não vinha junto nos dados. Fica aqui como ponto de partida. */
+const HIST_PADRAO={
+ "2022":{"9":385.42,"10":2261.98,"11":2261.98},
+ "2023":{"0":2261.98,"1":2265.24,"2":2265.24,"3":2265.24,"4":2265.24,"5":2281.09,
+         "6":3290.45,"7":3290.45,"8":3290.45,"9":3290.45,"10":3290.45,"11":3290.45},
+ "2024":{"0":3294.69,"1":1889.34,"2":7789.76,"3":2134,"4":4733.07,"5":4844.68,
+         "6":4844.68,"7":4844.68,"8":4844.68,"9":4844.68,"10":3344.68,"11":4844.68},
+ "2025":{"0":4833.02,"1":4833.02,"2":4833.02,"3":4833.02,"4":4033.02,"5":4833.02,
+         "6":4833.02,"7":4833.02,"8":4833.02,"9":4833.02,"10":4833.02,"11":5339.03},
+ "2026":{"0":5339.03,"1":7339.03,"2":5339.03,"3":5416.79,"4":5416.79,"5":6161.4,"6":5998.48}};
+const DEC_PADRAO={"2022":[312.5,265.63],"2023":[1550,1240.45],"2024":[2500,2500],"2025":[2500,2500]};
+const vazio = o => !o || Object.keys(o).length===0;
+
+/* ==================== EDITAR O HISTÓRICO ==================== */
+function editarMesSal(ano,mes){
+  const v=((D.salHist||{})[ano]||{})[mes];
+  abrirFolha(`<h2>${MESES[+mes].charAt(0).toUpperCase()+MESES[+mes].slice(1)} de ${ano}</h2>
+    <div class="campo"><label>Quanto caiu</label><input id="hVal" type="number" step="0.01" value="${v!==undefined?v:''}"></div>
+    <button class="btn verde" onclick="salvarMesSal('${ano}','${mes}')">Salvar</button>
+    ${v!==undefined?`<button class="btn claro" style="margin-top:8px" onclick="apagarMesSal('${ano}','${mes}')">Apagar este mês</button>`:''}`);
+}
+function salvarMesSal(ano,mes){
+  const v=numCampo('hVal'); if(!(v>0)) return toast('Informe um valor');
+  D.salHist=D.salHist||{}; D.salHist[ano]=D.salHist[ano]||{};
+  D.salHist[ano][mes]=v; salvar(); fecharFolha(); render(); toast('Salvo');
+}
+function apagarMesSal(ano,mes){
+  if(D.salHist[ano]) delete D.salHist[ano][mes];
+  if(vazio(D.salHist[ano])) delete D.salHist[ano];
+  salvar(); fecharFolha(); render();
+}
+function editarDecimo(ano){
+  const d=(D.decimo||{})[ano]||[0,0];
+  abrirFolha(`<h2>13º de ${ano}</h2>
+    <div class="campo"><label>1ª parcela</label><input id="d1" type="number" step="0.01" value="${d[0]||0}"></div>
+    <div class="campo"><label>2ª parcela</label><input id="d2" type="number" step="0.01" value="${d[1]||0}"></div>
+    <button class="btn verde" onclick="salvarDecimo('${ano}')">Salvar</button>`);
+}
+function salvarDecimo(ano){
+  D.decimo=D.decimo||{}; D.decimo[ano]=[numCampo('d1'),numCampo('d2')];
+  salvar(); fecharFolha(); render(); toast('Salvo');
+}
+function novoAnoSal(){
+  abrirFolha(`<h2>Adicionar ano</h2>
+    <div class="campo"><label>Ano</label><input id="nAno" type="number" placeholder="2027"></div>
+    <button class="btn verde" onclick="salvarAnoSal()">Criar</button>`);
+}
+function salvarAnoSal(){
+  const a=String(Math.round(numCampo('nAno'))||'');
+  if(a.length!==4) return toast('Informe um ano com 4 dígitos');
+  D.salHist=D.salHist||{}; if(!D.salHist[a]) D.salHist[a]={};
+  UI.ano=a; salvar(); fecharFolha(); render();
+}
+
+/* ==================== EDITAR FÉRIAS ==================== */
+function editarPeriodo(i){
+  const f=D.ferias[i];
+  abrirFolha(`<h2>Período ${esc(f.n)}</h2>
+    <div class="campo"><label>Nome</label><input id="peN" value="${esc(f.n)}"></div>
+    <div class="campo"><label>Início</label><input id="peI" value="${esc(f.ini||'')}" placeholder="set/2025"></div>
+    <div class="campo"><label>Fim</label><input id="peF" value="${esc(f.fim||'')}" placeholder="set/2026"></div>
+    <div class="campo"><label>Dias do período</label><input id="peD" type="number" value="${f.dias}"></div>
+    <div class="campo"><label>Observação</label><input id="peO" value="${esc(f.obs||'')}"></div>
+    <div class="campo"><label>Situação</label><select id="peQ">
+      <option value="0" ${!f.quit?'selected':''}>Em aberto</option>
+      <option value="1" ${f.quit?'selected':''}>Quitado</option></select></div>
+    <button class="btn verde" onclick="salvarPeriodo(${i})">Salvar</button>
+    <button class="btn claro" style="margin-top:8px" onclick="excluirPeriodo(${i})">Excluir período</button>`);
+}
+function salvarPeriodo(i){
+  const f=D.ferias[i];
+  f.n=txtCampo('peN')||f.n; f.ini=txtCampo('peI'); f.fim=txtCampo('peF');
+  f.dias=Math.round(numCampo('peD'))||f.dias; f.obs=txtCampo('peO');
+  f.quit=(document.getElementById('peQ')||{}).value==='1';
+  salvar(); fecharFolha(); render(); toast('Salvo');
+}
+function excluirPeriodo(i){
+  if(!confirm('Excluir o período "'+D.ferias[i].n+'" e tudo que está registrado nele?')) return;
+  D.ferias.splice(i,1); salvar(); fecharFolha(); render();
+}
+function novoPeriodo(){
+  D.ferias=D.ferias||[];
+  D.ferias.push({n:'novo período',ini:'',fim:'',dias:30,gozos:[]});
+  salvar(); render(); editarPeriodo(D.ferias.length-1);
+}
+function editarGozo(i,j){
+  const g=D.ferias[i].gozos[j];
+  abrirFolha(`<h2>${g.vend?'Dias vendidos':'Dias tirados'}</h2>
+    <div class="campo"><label>Quantos dias</label><input id="gzD" type="number" value="${g.d}"></div>
+    <div class="campo"><label>O que fez</label><select id="gzT">
+      <option value="tirou" ${!g.vend?'selected':''}>Tirei de férias</option>
+      <option value="vendeu" ${g.vend?'selected':''}>Vendi</option></select></div>
+    <div class="campo"><label>Valor recebido</label><input id="gzV" type="number" step="0.01" value="${g.v||0}"></div>
+    <div class="campo"><label>De</label><input id="gzDe" value="${esc(g.de||'')}" placeholder="06/10"></div>
+    <div class="campo"><label>Até</label><input id="gzAte" value="${esc(g.ate||'')}" placeholder="16/10/2026"></div>
+    <div class="campo"><label>Recebido em</label><input id="gzRec" value="${esc(g.rec||'')}" placeholder="out/2026"></div>
+    <button class="btn verde" onclick="salvarGozo(${i},${j})">Salvar</button>
+    <button class="btn claro" style="margin-top:8px" onclick="excluirGozo(${i},${j})">Excluir registro</button>`);
+}
+function salvarGozo(i,j){
+  const g=D.ferias[i].gozos[j];
+  g.d=Math.round(numCampo('gzD'))||g.d;
+  g.vend=(document.getElementById('gzT')||{}).value==='vendeu';
+  g.v=numCampo('gzV');
+  g.de=txtCampo('gzDe'); g.ate=txtCampo('gzAte'); g.rec=txtCampo('gzRec');
+  salvar(); fecharFolha(); render(); toast('Salvo');
+}
+function excluirGozo(i,j){
+  D.ferias[i].gozos.splice(j,1); salvar(); fecharFolha(); render();
+}
+
+/* ==================== EDITAR DÍVIDAS ==================== */
+function editarEmprestimo(id){
+  const f=(D.fixas||[]).find(x=>x.id===id); if(!f) return;
+  abrirFolha(`<h2>${esc(f.nome)}</h2>
+    <div class="campo"><label>Nome</label><input id="emN" value="${esc(f.nome)}"></div>
+    <div class="campo"><label>Valor da parcela</label><input id="emV" type="number" step="0.01" value="${f.valor}"></div>
+    <div class="campo"><label>Quantas parcelas no total</label><input id="emP" type="number" value="${f.parcelas}"></div>
+    <div class="campo"><label>Primeira parcela em (ano-mês)</label><input id="emI" value="${esc(f.inicio||'')}" placeholder="2026-08"></div>
+    <div class="campo"><label>Vence dia</label><input id="emD" type="number" min="1" max="31" value="${f.dia}"></div>
+    <div class="campo"><label>Como se paga</label><select id="emF">
+      ${['boleto','pix','debito','dinheiro'].map(o=>`<option value="${o}" ${o===f.forma?'selected':''}>${FORMAS[o]}</option>`).join('')}</select></div>
+    <button class="btn verde" onclick="salvarEmprestimo(${id})">Salvar</button>
+    <button class="btn claro" style="margin-top:8px" onclick="excluirFixa(${id})">Excluir</button>`);
+}
+function salvarEmprestimo(id){
+  const f=D.fixas.find(x=>x.id===id); if(!f) return;
+  f.nome=txtCampo('emN')||f.nome; f.valor=numCampo('emV');
+  f.parcelas=Math.round(numCampo('emP'))||f.parcelas;
+  const ini=txtCampo('emI'); if(/^\d{4}-\d{2}$/.test(ini)) f.inicio=ini;
+  f.dia=Math.min(31,Math.max(1,Math.round(numCampo('emD'))||f.dia));
+  f.forma=(document.getElementById('emF')||{}).value||f.forma;
+  salvar(); fecharFolha(); render(); toast('Salvo');
+}
+function excluirFixa(id){
+  const f=D.fixas.find(x=>x.id===id); if(!f) return;
+  if(!confirm('Excluir "'+f.nome+'"?')) return;
+  D.fixas=D.fixas.filter(x=>x.id!==id); salvar(); fecharFolha(); render();
+}
+function novaDivida(){
+  const f={id:novoId(),nome:'nova dívida',valor:0,forma:'boleto',dia:10,cat:'Dívidas',
+    inicio:UI.mesRef,ativa:true,ajustes:{},tipo:'divida',parcelas:12};
+  D.fixas.push(f); salvar(); render(); editarEmprestimo(f.id);
+}
+function editarParcelado(id){
+  const g=D.gastos.find(x=>x.id===id); if(!g) return;
+  abrirFolha(`<h2>${esc(g.desc)}</h2>
+    <div class="campo"><label>Descrição</label><input id="pcN" value="${esc(g.desc)}"></div>
+    <div class="campo"><label>Valor total</label><input id="pcV" type="number" step="0.01" value="${g.valor}"></div>
+    <div class="campo"><label>Em quantas vezes</label><input id="pcP" type="number" value="${g.parcelas}"></div>
+    <div class="campo"><label>Primeira parcela no ciclo (ano-mês)</label><input id="pcI" value="${esc(g.cicloInicial||cicloDe(g))}"></div>
+    <div class="campo"><label>Cartão</label><select id="pcC">
+      ${CARTOES().map(c=>`<option value="${c.id}" ${c.id===g.card?'selected':''}>${esc(c.nome)}</option>`).join('')}</select></div>
+    <div class="campo"><label>Categoria</label><select id="pcCat">
+      ${D.catsGasto.map(c=>`<option ${c===g.cat?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+    <button class="btn verde" onclick="salvarParcelado(${id})">Salvar</button>
+    <button class="btn claro" style="margin-top:8px" onclick="excluirParcelado(${id})">Excluir</button>`);
+}
+function salvarParcelado(id){
+  const g=D.gastos.find(x=>x.id===id); if(!g) return;
+  g.desc=txtCampo('pcN')||g.desc; g.valor=numCampo('pcV');
+  g.parcelas=Math.round(numCampo('pcP'))||g.parcelas;
+  const ini=txtCampo('pcI'); if(/^\d{4}-\d{2}$/.test(ini)) g.cicloInicial=ini;
+  g.card=(document.getElementById('pcC')||{}).value||g.card;
+  g.cat=(document.getElementById('pcCat')||{}).value||g.cat;
+  salvar(); fecharFolha(); render(); toast('Salvo');
+}
+function excluirParcelado(id){
+  const g=D.gastos.find(x=>x.id===id);
+  if(!g || !confirm('Excluir "'+g.desc+'" e todas as parcelas?')) return;
+  D.gastos=D.gastos.filter(x=>x.id!==id); salvar(); fecharFolha(); render();
 }
 
 /* boot */
