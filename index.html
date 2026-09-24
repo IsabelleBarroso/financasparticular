@@ -287,6 +287,8 @@ nav .divisor{width:1px;background:var(--linha);margin:12px 0}
 .selo-sinc.off{background:#E8899C}
 @keyframes pisca{0%,100%{opacity:1}50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.linha-item .valor{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.linha-item .valor .btn{width:auto;white-space:nowrap;margin-top:0}
 .fab{position:fixed;right:16px;bottom:calc(74px + env(safe-area-inset-bottom));width:56px;height:56px;
   border-radius:50%;border:0;background:var(--verde);color:#fff;font-size:28px;line-height:1;cursor:pointer;
   box-shadow:0 6px 18px rgba(18,50,42,.28);z-index:40}
@@ -345,7 +347,7 @@ const SALA = "financas/app-e7d9071862a3";   // mesma gaveta do app antigo — N�
 /* ========================================================== */
 
 /* ==================== CONSTANTES ==================== */
-const VERSAO = '2.2';
+const VERSAO = '2.3';
 const CHAVE = 'financas-v2';
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const M3=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -809,7 +811,7 @@ function telaDividas(){
   ${bloco('Sem parcela fixa',(D.livres||[]).map((x,i)=>`<div class="linha-item"><div class="corpo">
     <div class="nome">${esc(x.nome)}</div><div class="sub">${esc(x.obs||'saldo em aberto')}</div></div>
     <div class="valor">${R$(x.saldo)}
-    <button class="btn claro" style="margin-top:6px;padding:4px 10px;font-size:11px" onclick="abrirAbate(${i})">abater</button></div></div>`))}
+    <button class="btn claro" style="padding:4px 10px;font-size:11px" onclick="abrirAbate(${i})">abater</button></div></div>`))}
   <button class="btn claro" style="margin-top:10px" onclick="novaDivida()">+ Nova dívida</button>`;
 }
 
@@ -824,7 +826,7 @@ function telaPoupanca(){
       <div class="nome" style="cursor:pointer" onclick="abrirPoup(${i})">${esc(p.nome)} ✎</div>
       <div class="sub">R$ ${R2(p.aporte)} todo dia ${p.dia}${p.meta?' · meta '+R$(p.meta):''}</div></div>
       <div class="valor">${R$(p.saldo)}
-      <button class="btn ${feito?'claro':'verde'}" style="margin-top:6px;padding:4px 10px;font-size:11px"
+      <button class="btn ${feito?'claro':'verde'}" style="padding:4px 10px;font-size:11px"
         onclick="aportar(${i})">${feito?'aportado ✓':'aportei'}</button></div></div>`;}).join('')}</div>
   <button class="btn claro" style="margin-top:10px" onclick="abrirPoup(-1)">+ Nova poupança</button>
   <div style="font-size:11.5px;color:var(--cinza);margin-top:10px">Poupança não é gasto: sai da renda antes do teto e o saldo vive só aqui.</div>`;
